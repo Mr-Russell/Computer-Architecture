@@ -9,6 +9,7 @@ class CPU:
         """Construct a new CPU."""
         self.ram = [0] * 256
         self.reg = [0] * 8
+        self.reg[7] = 0xf4
         self.pc = 0
 
     def ram_read(self, address):
@@ -43,7 +44,8 @@ class CPU:
         """ALU operations."""
 
         if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
+            num_sum = self.reg[reg_a] + self.reg[reg_b]
+            self.reg[reg_a] = num_sum
         
         elif op == "MUL":
             product = self.reg[reg_a] * self.reg[reg_b]
@@ -77,6 +79,8 @@ class CPU:
         PRN = 0b01000111
         HLT = 0b00000001
         MUL = 0b10100010
+        PUSH = 0b01000101
+        POP = 0b01000110
         
         running = True
        
@@ -85,17 +89,39 @@ class CPU:
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
+
             if instruction == LDI: 
                 self.reg[operand_a] = operand_b
                 self.pc += 3
             
+
             elif instruction == PRN:
                 print(self.reg[operand_a])
                 self.pc += 2
+
 
             elif instruction == MUL:
                 self.alu("MUL", operand_a, operand_b)
                 self.pc += 3
 
+
             elif instruction == HLT:
                 running = False
+
+
+            elif instruction == PUSH:
+                self.reg[7] -= 1
+
+                stack_top = self.reg[7]
+                self.ram[stack_top] = self.reg[operand_a]
+
+                self.pc +=2
+
+
+            elif instruction == POP:
+                stack_top = self.reg[7]
+                self.reg[operand_a] = self.ram[stack_top]
+
+                self.reg[7] += 1
+                
+                self.pc +=2
