@@ -38,6 +38,10 @@ class CPU:
 
                 self.ram[address] = int(temp[0], 2)
                 address += 1
+    
+        # print("======= PROGRAM =========")
+        # for i in self.ram[:35]:
+        #     print(i)
 
 
     def alu(self, op, reg_a, reg_b):
@@ -81,6 +85,9 @@ class CPU:
         MUL = 0b10100010
         PUSH = 0b01000101
         POP = 0b01000110
+        CALL = 0b01010000
+        RET = 0b00010001
+        ADD = 0b10100000
         
         running = True
        
@@ -88,6 +95,9 @@ class CPU:
             instruction = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
+
+            # if instruction & 0b00010000 == 0:
+            #     self.pc += (instruction >> 6) + 1
 
 
             if instruction == LDI: 
@@ -115,7 +125,7 @@ class CPU:
                 stack_top = self.reg[7]
                 self.ram[stack_top] = self.reg[operand_a]
 
-                self.pc +=2
+                self.pc += 2
 
 
             elif instruction == POP:
@@ -124,4 +134,29 @@ class CPU:
 
                 self.reg[7] += 1
                 
-                self.pc +=2
+                self.pc += 2
+
+
+            elif instruction == CALL:
+                self.reg[7] -=1
+
+                stack_top = self.reg[7]
+                self.ram[stack_top] = self.pc + 2
+
+                self.pc = self.reg[operand_a]
+                # print(f"PC = {self.pc}")
+                # print(f"CALL INVOKED. REGISTER 7 set to {self.reg[7]}")
+
+
+            elif instruction == RET:
+                stack_top = self.reg[7]
+                self.pc = self.ram[stack_top]
+
+                self.reg[7] +=1
+                # print(f"RETURN INVOKED. REGISTER 7 set to {self.reg[7]}")
+
+            
+            elif instruction == ADD:
+                self.alu("ADD", operand_a, operand_b)
+                self.pc += 3
+
