@@ -11,6 +11,14 @@ class CPU:
         self.reg = [0] * 8
         self.reg[7] = 0xf4
         self.pc = 0
+        self.fl = 0b00000000
+        self.running = False
+        # self.branchtable = {
+        #     0b10000010: self.LDI(),
+        #     0b01000111: self.PRN(),
+
+        # }
+
 
     def ram_read(self, address):
         return self.ram[address]
@@ -48,12 +56,26 @@ class CPU:
         """ALU operations."""
 
         if op == "ADD":
-            num_sum = self.reg[reg_a] + self.reg[reg_b]
-            self.reg[reg_a] = num_sum
+            self.reg[reg_a] += self.reg[reg_b]
         
         elif op == "MUL":
-            product = self.reg[reg_a] * self.reg[reg_b]
-            self.reg[reg_a] = product
+            self.reg[reg_a] *= self.reg[reg_b]
+
+        elif op == "CMP":
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.fl = self.fl | 0b00000001
+            else:
+                self.fl = self.fl & 0b11111110
+
+            if self.reg[reg_a] < self.reg[reg_b]:
+                self.fl = self.fl | 0b00000010
+            else:
+                self.fl = self.fl & 0b11111101
+
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.fl = self.fl | 0b00000100
+            else:
+                self.fl = self.fl & 0b11111011
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -77,6 +99,15 @@ class CPU:
 
         print()
 
+    # def LDI(self):
+    #     self.reg[self.ram[self.pc+1]] = self.ram[self.pc+2]
+    #     self.pc += 3
+
+    # def PRN(self):
+    #     print(self.reg[self.ram[self.pc+1]])
+    #     self.pc += 2
+
+
     def run(self):
         """Run the CPU."""
         LDI = 0b10000010
@@ -88,17 +119,17 @@ class CPU:
         CALL = 0b01010000
         RET = 0b00010001
         ADD = 0b10100000
+        JMP = 0b01010100
+        CMP = 0b10100111
+        JEQ = 0b01010101
+        JNE = 0b01010110
         
-        running = True
+        self.running = True
        
-        while running == True: 
+        while self.running == True: 
             instruction = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
-
-            # if instruction & 0b00010000 == 0:
-            #     self.pc += (instruction >> 6) + 1
-
 
             if instruction == LDI: 
                 self.reg[operand_a] = operand_b
@@ -116,7 +147,7 @@ class CPU:
 
 
             elif instruction == HLT:
-                running = False
+                self.running = False
 
 
             elif instruction == PUSH:
@@ -160,3 +191,27 @@ class CPU:
                 self.alu("ADD", operand_a, operand_b)
                 self.pc += 3
 
+            
+            elif instruction == JMP:
+                self.pc = self.reg[operand_a]
+
+
+            elif instruction == CMP:
+                self.alu("CMP", operand_a, operand_b)
+                self.pc += 3
+
+
+            elif instruction == JEQ:
+                if self.fl == 0b00000001:
+                    self.pc = self.reg[operand_a]
+                else:
+                    self.pc += 2
+
+            
+            elif instruction == JNE:
+                check_e = self.fl & 0b00000001
+                if check_e == 0b00000000:
+                    self.pc = self.reg[operand_a]
+                else:
+                    self.pc += 2
+                
